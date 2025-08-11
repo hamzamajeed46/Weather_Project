@@ -1,18 +1,20 @@
 from django.db import models
 from django.core.validators import EmailValidator
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 # Predefined list of allowed cities
 CITY_CHOICES = [
     ("London", "London"),
     ("New York", "New York"),
     ("Tokyo", "Tokyo"),
-    ("Paris", "Paris"),
+    ("Lahore", "Lahore"),
     ("Karachi", "Karachi"),
     # Add more cities as needed
 ]
 
 class UserSubscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
     email = models.EmailField(
         validators=[EmailValidator()],
         unique=False  # Allow same email for different cities
@@ -22,7 +24,7 @@ class UserSubscription(models.Model):
     status = models.BooleanField(default=True)  # True = Active, False = Inactive
 
     class Meta:
-        unique_together = ('email', 'city')  # Prevent duplicate subscription for same city
+        unique_together = ('user', 'city')  # Prevent duplicate subscription for same user and city
 
     def __str__(self):
         return f"{self.email} - {self.city} ({'Active' if self.status else 'Inactive'})"
