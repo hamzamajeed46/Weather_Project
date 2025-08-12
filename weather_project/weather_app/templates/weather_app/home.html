@@ -137,6 +137,125 @@
             transform: translateY(-2px);
         }
 
+        .subscription-section {
+            max-width: 800px;
+            margin: 3rem auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+        }
+
+        .subscription-forms {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+
+        .form-title {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: white;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .form-group select option {
+            background: #667eea;
+            color: white;
+        }
+
+        .form-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .subscribe-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .unsubscribe-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            color: white;
+        }
+
+        .form-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .current-subscriptions {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+        }
+
+        .subscription-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .subscription-info {
+            flex: 1;
+        }
+
+        .quick-unsubscribe {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
         .messages {
             max-width: 800px;
             margin: 0 auto 2rem;
@@ -173,6 +292,15 @@
 
             .main-content {
                 padding: 2rem 1rem;
+            }
+
+            .subscription-forms {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .form-container {
+                padding: 1rem;
             }
         }
     </style>
@@ -222,8 +350,91 @@
                     <div class="feature-card">
                         <div class="feature-icon">🏙️</div>
                         <div class="feature-title">Multiple Cities</div>
-                        <div class="feature-description">Track weather for London, New York, Tokyo, Paris, and Karachi</div>
+                        <div class="feature-description">Track weather for London, New York, Tokyo, Lahore, and Karachi</div>
                     </div>
+                </div>
+
+                <!-- Subscription Management Section -->
+                <div class="subscription-section">
+                    <h2 style="color: white; text-align: center; margin-bottom: 1rem;">Manage Your Subscriptions</h2>
+                    
+                    <div class="subscription-forms">
+                        <!-- Subscribe Form -->
+                        <div class="form-container">
+                            <h3 class="form-title">Subscribe to City</h3>
+                            <form method="post" action="{% url 'subscribe_form' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="sub_email">Email:</label>
+                                    <input type="email" id="sub_email" name="email" value="{{ user.email }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sub_city">City:</label>
+                                    <select id="sub_city" name="city" required>
+                                        <option value="">Select a city</option>
+                                        <option value="London">London</option>
+                                        <option value="New York">New York</option>
+                                        <option value="Tokyo">Tokyo</option>
+                                        <option value="Lahore">Lahore</option>
+                                        <option value="Karachi">Karachi</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="form-btn subscribe-btn">Subscribe</button>
+                            </form>
+                        </div>
+
+                        <!-- Unsubscribe Form -->
+                        <div class="form-container">
+                            <h3 class="form-title">Unsubscribe from City</h3>
+                            <form method="post" action="{% url 'unsubscribe_form' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="unsub_email">Email:</label>
+                                    <input type="email" id="unsub_email" name="email" value="{{ user.email }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="unsub_city">City:</label>
+                                    <select id="unsub_city" name="city" required>
+                                        <option value="">Select a city</option>
+                                        <option value="London">London</option>
+                                        <option value="New York">New York</option>
+                                        <option value="Tokyo">Tokyo</option>
+                                        <option value="Lahore">Lahore</option>
+                                        <option value="Karachi">Karachi</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="form-btn unsubscribe-btn">Unsubscribe</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Subscriptions Display -->
+                <div class="current-subscriptions">
+                    <h2 style="color: white; text-align: center; margin-bottom: 1rem;">Your Current Subscriptions</h2>
+                    {% if user_subscriptions %}
+                        {% for subscription in user_subscriptions %}
+                            <div class="subscription-item">
+                                <div class="subscription-info">
+                                    <strong>{{ subscription.city }}</strong> - {{ subscription.email }}
+                                    <small style="display: block; opacity: 0.8;">
+                                        Subscribed: {{ subscription.subscribed_at|date:"M d, Y" }}
+                                        {% if subscription.status %}(Active){% else %}(Inactive){% endif %}
+                                    </small>
+                                </div>
+                                <form method="post" action="{% url 'unsubscribe_form' %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="email" value="{{ subscription.email }}">
+                                    <input type="hidden" name="city" value="{{ subscription.city }}">
+                                    <button type="submit" class="quick-unsubscribe">Remove</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: white; text-align: center; opacity: 0.8;">
+                            You don't have any active subscriptions yet. Use the forms above to subscribe to weather updates!
+                        </p>
+                    {% endif %}
                 </div>
             {% else %}
                 <h1>Welcome to Weather App</h1>

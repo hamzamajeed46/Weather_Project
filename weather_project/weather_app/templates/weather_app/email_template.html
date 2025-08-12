@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                 padding: 20px; border-radius: 10px; color: white; }
+        .content { padding: 20px; background: #f8f9fa; border-radius: 10px; margin: 20px 0; }
+        .weather-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0; text-align: center;">🌤️ Weather Update</h1>
+        <p style="text-align: center; margin: 10px 0;">Daily weather report for {{ city }}</p>
+    </div>
+    
+    <div class="content">
+        <div class="weather-card">
+            <h3 style="margin: 0; color: #333; font-size: 24px;">🌡️ {{ weather_data.temperature }}°C</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <div>
+                    <strong style="color: #667eea;">💧 Humidity:</strong><br>
+                    <span style="font-size: 18px;">{{ weather_data.humidity }}%</span>
+                </div>
+                <div>
+                    <strong style="color: #667eea;">☁️ Conditions:</strong><br>
+                    <span style="font-size: 18px; text-transform: capitalize;">{{ weather_data.conditions }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>This email was sent from Weather App</p>
+        <p>To unsubscribe, log into your account.</p>
+    </div>
+</body>
+</html>
