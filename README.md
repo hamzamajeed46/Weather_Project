@@ -75,18 +75,25 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```
-DJANGO_SECRET_KEY=your_secret_key
-EMAIL_HOST=smtp.yourprovider.com
-EMAIL_HOST_USER=your_email@example.com
-EMAIL_HOST_PASSWORD=your_email_password
-OPENWEATHER_API_KEY=your_openweathermap_api_key
+DB_NAME= dbName
+DB_USER= yourdbusername
+DB_PASSWORD= yourdbpassword
+DB_HOST= yourdbhost
+DB_PORT= yourdbport
+WEATHER_API = weather_api_key
+EMAIL_HOST = smtp.provider.com
+EMAIL_PORT = email_port
+EMAIL_HOST_USER = youremail
+EMAIL_HOST_PASSWORD = youremailpassword
+EMAIL_USE_TLS = True
 ```
 
 ### 5. Database Setup
 
-By default, uses SQLite. For MySQL, update `settings.py` accordingly.
+Using MySQL, to use any other db update `settings.py` accordingly.
 
 ```sh
+python manage.py makemigrations
 python manage.py migrate
 ```
 
@@ -108,7 +115,7 @@ Open two terminals:
 
 **Terminal 1:**
 ```sh
-celery -A weather_project worker --loglevel=info
+celery -A weather_project worker --loglevel=info --pool=solo
 ```
 
 **Terminal 2:**
