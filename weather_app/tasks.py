@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task
+@shared_task(name='weather_app.tasks.send_weather_email')
 def send_weather_email(user_email, city, weather_data):
     """Send weather email to a single user"""
     try:
@@ -93,8 +93,8 @@ def send_weather_email(user_email, city, weather_data):
         logger.error(f"❌ Failed to send email to {user_email} for {city}: {e}")
         return f"Failed to send email to {user_email}: {str(e)}"
 
-@shared_task
-def daily_weather_report_sync():
+@shared_task(name='weather_app.tasks.daily_weather_report')
+def daily_weather_report():
     """Daily weather report task with synchronous email sending"""
     logger.info("🚀 Starting daily weather report task (synchronous)...")
     
@@ -129,7 +129,8 @@ def daily_weather_report_sync():
                     # Send email directly (synchronously)
                     result = send_weather_email(subscription.email, city, data)
                     
-                    if "sent successfully" in result:
+                    # Fix: Check for "Email sent to" instead of "sent successfully"
+                    if "Email sent to" in result and "Failed" not in result:
                         total_emails_sent += 1
                         logger.info(f"✅ Email sent to {subscription.email}")
                     else:
@@ -150,12 +151,7 @@ def daily_weather_report_sync():
         logger.error(f"❌ {error_message}")
         return error_message
 
-@shared_task
-def daily_weather_report():
-    """Original async task (kept for backward compatibility)"""
-    return daily_weather_report_sync()
-
-@shared_task
+@shared_task(name='weather_app.tasks.test_email_task')
 def test_email_task(test_email="mhamzag567@gmail.com"):
     """Test task to send a simple email"""
     try:

@@ -13,7 +13,7 @@ load_dotenv()
 
 def get_weather_data(city):
     """
-    Fetch weather data for a specific city from OpenWeather API
+    Fetch weather data for a specific city - checks DB first, then API if needed
     
     Args:
         city (str): Name of the city
@@ -25,11 +25,48 @@ def get_weather_data(city):
             'temperature': float,
             'humidity': int,
             'conditions': str,
+            'feels_like': float,
             'success': bool,
+            'source': str ('database' or 'api'),
             'error': str (if success=False)
         }
     """
     try:
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Validate city is in allowed list first
+        valid_cities = [choice[0] for choice in CITY_CHOICES]
+        if city not in valid_cities:
+            logger.error(f"Invalid city: {city}")
+            return {
+                'success': False,
+                'error': f'City "{city}" is not in the allowed list'
+            }
+        
+        # Step 1: Check database for recent weather data (within last 3 hours)
+        three_hours_ago = timezone.now() - timedelta(hours=3)
+        recent_weather = WeatherLog.objects.filter(
+            city=city,
+            date__gte=three_hours_ago  # Changed from fetched_at to date
+        ).order_by('-date').first()  # Changed from -fetched_at to -date
+        
+        if recent_weather:
+            # Use cached data from database
+            logger.info(f"📊 Using cached weather data for {city} (fetched at {recent_weather.date})")
+            return {
+                'city': city,
+                'temperature': float(recent_weather.temperature),
+                'humidity': recent_weather.humidity,
+                'conditions': recent_weather.conditions,
+                'feels_like': float(recent_weather.temperature),  # You can add feels_like field to model later
+                'success': True,
+                'source': 'database'
+            }
+        
+        # Step 2: No recent data found, fetch from API
+        logger.info(f"🌐 No recent data found for {city}, fetching from API")
+        
         # Get API key from environment
         api_key = os.getenv('WEATHER_API')
         if not api_key:
@@ -39,20 +76,11 @@ def get_weather_data(city):
                 'error': 'Weather API key not configured'
             }
         
-        # Validate city is in allowed list
-        valid_cities = [choice[0] for choice in CITY_CHOICES]
-        if city not in valid_cities:
-            logger.error(f"Invalid city: {city}")
-            return {
-                'success': False,
-                'error': f'City "{city}" is not in the allowed list'
-            }
-        
         # Build API URL
         url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
         
         # Make API request
-        logger.info(f"Fetching weather data for {city}")
+        logger.info(f"Fetching fresh weather data for {city} from OpenWeather API")
         response = requests.get(url, timeout=10)
         
         # Check if request was successful
@@ -65,10 +93,26 @@ def get_weather_data(city):
                 'temperature': round(data['main']['temp'], 1),
                 'humidity': data['main']['humidity'],
                 'conditions': data['weather'][0]['description'],
-                'success': True
+                'feels_like': round(data['main'].get('feels_like', data['main']['temp']), 1),
+                'success': True,
+                'source': 'api'
             }
             
-            logger.info(f"Successfully fetched weather for {city}: {weather_data['temperature']}°C")
+            # Step 3: Save API result to database for future use
+            try:
+                WeatherLog.objects.create(
+                    city=city,
+                    temperature=weather_data['temperature'],
+                    humidity=weather_data['humidity'],
+                    conditions=weather_data['conditions'],
+                    date=timezone.now()  # Changed from fetched_at to date
+                )
+                logger.info(f"💾 Saved fresh weather data for {city} to database")
+            except Exception as save_error:
+                logger.warning(f"⚠️ Failed to save weather data for {city}: {save_error}")
+                # Don't fail the main request if saving fails
+            
+            logger.info(f"✅ Successfully fetched weather for {city}: {weather_data['temperature']}°C")
             return weather_data
             
         elif response.status_code == 404:
@@ -124,18 +168,10 @@ def fetch_weather_for_cities(cities):
         weather_data = get_weather_data(city)
         results[city] = weather_data
         
-        # Optional: Save to WeatherLog if successful
+        # Log the data source
         if weather_data.get('success'):
-            try:
-                WeatherLog.objects.create(
-                    city=city,
-                    temperature=weather_data['temperature'],
-                    humidity=weather_data['humidity'],
-                    conditions=weather_data['conditions']
-                )
-                logger.info(f"Saved weather data to log for {city}")
-            except Exception as e:
-                logger.error(f"Failed to save weather log for {city}: {str(e)}")
+            source = weather_data.get('source', 'unknown')
+            logger.info(f"Weather data for {city} obtained from: {source}")
     
     return results
 

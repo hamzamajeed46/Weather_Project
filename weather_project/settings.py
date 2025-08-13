@@ -198,6 +198,6 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max per task
 CELERY_BEAT_SCHEDULE = {
     'daily-weather-report': {
         'task': 'weather_app.tasks.daily_weather_report',
-        'schedule': crontab(hour=19, minute=30),  # 7:30 PM PKT
+        'schedule': crontab(hour=12, minute=00),  # 7:30 PM PKT
     },
 }
