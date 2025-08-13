@@ -491,8 +491,8 @@ def get_weather_history(request, city):
                 days = int(days)
                 if days < 1:
                     days = 1
-                elif days > 365:
-                    days = 365
+                elif days > 15:
+                    days = 15
                 start_date = end_date - timedelta(days=days-1)
             except ValueError:
                 return Response({
