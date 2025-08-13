@@ -18,6 +18,7 @@ urlpatterns = [
     # API endpoints
     path('api/subscribe/', views.subscribe, name='subscribe'),
     path('api/unsubscribe/', views.unsubscribe, name='unsubscribe'),
+    path('unsubscribe-link/', views.unsubscribe_link, name='unsubscribe_link'),
     path('api/subscriptions/', views.list_subscriptions, name='list_subscriptions'),
     path('api/weather/history/<str:city>/', views.get_weather_history, name='weather_history'),
 ]

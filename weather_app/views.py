@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
+from django.core.signing import TimestampSigner, BadSignature
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
@@ -19,6 +20,8 @@ from .serializers import WeatherLogSerializer
 from datetime import datetime, timedelta
 from django.utils import timezone
 import json
+
+signer = TimestampSigner()
 
 def home(request):
     """Home page - shows different content based on authentication status"""
@@ -298,6 +301,24 @@ def unsubscribe(request):
             return redirect('home')
 
 
+def unsubscribe_link(request):
+    try:
+        email = request.GET.get('email')
+        city = request.GET.get('city')
+        
+        # Remove authentication check for this special link
+        subscription = UserSubscription.objects.get(email=email, city=city)
+        subscription.delete()
+        
+        messages.success(request, f'Successfully unsubscribed from {city} weather updates.')
+    except UserSubscription.DoesNotExist:
+        messages.error(request, 'Subscription not found.')
+    except Exception:
+        messages.error(request, 'Error processing unsubscribe request.')
+    
+    return redirect('home')
+
+
 @extend_schema(
     parameters=[
         {
@@ -384,7 +405,7 @@ def list_subscriptions(request):
         },
         {
             'name': 'days',
-            'description': 'Number of days of history to retrieve (default: 30, max: 365)',
+            'description': 'Number of days of history to retrieve (default: 15, max: 15)',
             'required': False,
             'type': 'integer',
             'in': 'query'
@@ -499,8 +520,8 @@ def get_weather_history(request, city):
                     'error': 'days parameter must be a valid integer'
                 }, status=status.HTTP_400_BAD_REQUEST)
         else:
-            # Default to last 30 days
-            days = 30
+            # Default to last 15 days
+            days = 15
             start_date = end_date - timedelta(days=days-1)
         
         # Query all logs for the city and date range, order by date DESC and id DESC (latest first)

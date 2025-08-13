@@ -8,65 +8,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(name='weather_app.tasks.send_weather_email')
 def send_weather_email(user_email, city, weather_data):
     """Send weather email to a single user"""
     try:
         logger.info(f"Sending weather email to {user_email} for {city}")
-        
-        # Create HTML email content
-        html_message = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f7fa; }}
-                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }}
-                .header h1 {{ margin: 0; font-size: 28px; font-weight: 300; }}
-                .weather-content {{ padding: 40px 30px; text-align: center; }}
-                .temperature {{ font-size: 64px; font-weight: bold; color: #667eea; margin: 20px 0; }}
-                .condition {{ font-size: 24px; color: #555; margin-bottom: 30px; text-transform: capitalize; }}
-                .details {{ display: flex; justify-content: space-around; background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px 0; }}
-                .detail-item {{ text-align: center; }}
-                .detail-label {{ font-size: 14px; color: #666; margin-bottom: 5px; }}
-                .detail-value {{ font-size: 20px; font-weight: bold; color: #333; }}
-                .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>🌤️ Daily Weather Report</h1>
-                    <h2>{city}</h2>
-                </div>
-                
-                <div class="weather-content">
-                    <div class="temperature">{weather_data['temperature']}°C</div>
-                    <div class="condition">{weather_data['conditions']}</div>
-                    
-                    <div class="details">
-                        <div class="detail-item">
-                            <div class="detail-label">💧 Humidity</div>
-                            <div class="detail-value">{weather_data['humidity']}%</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">🌡️ Feels Like</div>
-                            <div class="detail-value">{weather_data.get('feels_like', weather_data['temperature'])}°C</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="footer">
-                    <p>Have a wonderful day! 🌟</p>
-                    <p>Weather data provided by OpenWeatherMap</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        # Plain text version
+
+        # Render HTML from template
+        html_message = render_to_string("weather_email.html", {
+            "user_email": user_email,
+            "city": city,
+            "weather_data": weather_data
+        })
+
+        # Plain text fallback
         plain_message = f"""
         Daily Weather Report for {city}
         
@@ -76,7 +32,7 @@ def send_weather_email(user_email, city, weather_data):
         
         Have a great day!
         """
-        
+
         send_mail(
             subject=f"Daily Weather Report for {city}",
             message=plain_message,
@@ -85,13 +41,14 @@ def send_weather_email(user_email, city, weather_data):
             html_message=html_message,
             fail_silently=False,
         )
-        
+
         logger.info(f"✅ Email sent successfully to {user_email} for {city}")
         return f"Email sent to {user_email} for {city}"
         
     except Exception as e:
         logger.error(f"❌ Failed to send email to {user_email} for {city}: {e}")
         return f"Failed to send email to {user_email}: {str(e)}"
+
 
 @shared_task(name='weather_app.tasks.daily_weather_report')
 def daily_weather_report():
