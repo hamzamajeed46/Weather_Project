@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/subscribe/', views.subscribe, name='subscribe'),
     path('api/unsubscribe/', views.unsubscribe, name='unsubscribe'),
     path('api/subscriptions/', views.list_subscriptions, name='list_subscriptions'),
+    path('api/weather/history/<str:city>/', views.get_weather_history, name='weather_history'),
 ]

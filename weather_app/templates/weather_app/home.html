@@ -436,6 +436,24 @@
                         </p>
                     {% endif %}
                 </div>
+
+                <!-- Historical Weather Data Section -->
+                <div class="current-subscriptions" style="margin-top: 2rem;">
+                    <h2 style="color: white; text-align: center; margin-bottom: 1rem;">View Historical Weather Data</h2>
+                    <div style="max-width: 400px; margin: 0 auto 2rem;">
+                        <label for="history_city" style="color: white; font-weight: bold;">Select City:</label>
+                        <select id="history_city" style="width: 100%; padding: 10px; border-radius: 8px; margin-bottom: 1rem;">
+                            <option value="">Choose a city</option>
+                            <option value="London">London</option>
+                            <option value="New York">New York</option>
+                            <option value="Tokyo">Tokyo</option>
+                            <option value="Lahore">Lahore</option>
+                            <option value="Karachi">Karachi</option>
+                        </select>
+                        <button id="fetch_history_btn" class="form-btn subscribe-btn" style="width: 100%;">View History</button>
+                    </div>
+                    <div id="history_results"></div>
+                </div>
             {% else %}
                 <h1>Welcome to Weather App</h1>
                 <p class="subtitle">Your personal weather companion</p>
@@ -451,4 +469,43 @@
         </div>
     </div>
 </body>
+    </html>
+
+    <script>
+    document.getElementById('fetch_history_btn').onclick = async function() {
+        const city = document.getElementById('history_city').value;
+        const resultsDiv = document.getElementById('history_results');
+        resultsDiv.innerHTML = '';
+        if (!city) {
+            resultsDiv.innerHTML = '<p style="color:white;text-align:center;">Please select a city.</p>';
+            return;
+        }
+        resultsDiv.innerHTML = '<p style="color:white;text-align:center;">Loading...</p>';
+        try {
+            const resp = await fetch(`/api/weather/history/${city}/`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!resp.ok) {
+                const err = await resp.json();
+                resultsDiv.innerHTML = `<p style='color:white;text-align:center;'>${err.error || 'Error fetching data.'}</p>`;
+                return;
+            }
+            const data = await resp.json();
+            if (!data.data || !data.data.length) {
+                resultsDiv.innerHTML = `<p style='color:white;text-align:center;'>No historical data found for ${city}.</p>`;
+                return;
+            }
+            let html = `<table style='width:100%;color:white;background:rgba(0,0,0,0.2);border-radius:10px;'>`;
+            html += `<tr><th>Date</th><th>Temp (°C)</th><th>Humidity (%)</th><th>Conditions</th></tr>`;
+            for (const entry of data.data) {
+                html += `<tr><td>${entry.date}</td><td>${entry.temperature}</td><td>${entry.humidity}</td><td>${entry.conditions}</td></tr>`;
+            }
+            html += `</table>`;
+            html += `<p style='color:white;text-align:center;margin-top:1rem;'>Showing latest log per day for ${city}.</p>`;
+            resultsDiv.innerHTML = html;
+        } catch (e) {
+            resultsDiv.innerHTML = `<p style='color:white;text-align:center;'>Error loading data.</p>`;
+        }
+    }
+    </script>
 </html>

@@ -14,7 +14,10 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from drf_spectacular.utils import extend_schema
 from django.contrib import messages
-from .models import UserSubscription, CITY_CHOICES
+from .models import UserSubscription, WeatherLog, CITY_CHOICES
+from .serializers import WeatherLogSerializer
+from datetime import datetime, timedelta
+from django.utils import timezone
 import json
 
 def home(request):
@@ -368,3 +371,191 @@ def list_subscriptions(request):
         
     except Exception as e:
         return Response({'error': 'An error occurred'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    parameters=[
+        {
+            'name': 'city',
+            'description': 'City name to get weather history for',
+            'required': True,
+            'type': 'string',
+            'in': 'path'
+        },
+        {
+            'name': 'days',
+            'description': 'Number of days of history to retrieve (default: 30, max: 365)',
+            'required': False,
+            'type': 'integer',
+            'in': 'query'
+        },
+        {
+            'name': 'start_date',
+            'description': 'Start date in YYYY-MM-DD format',
+            'required': False,
+            'type': 'string',
+            'in': 'query'
+        },
+        {
+            'name': 'end_date',
+            'description': 'End date in YYYY-MM-DD format',
+            'required': False,
+            'type': 'string',
+            'in': 'query'
+        }
+    ],
+    responses={
+        200: {
+            'description': 'Historical weather data',
+            'content': {
+                'application/json': {
+                    'type': 'object',
+                    'properties': {
+                        'city': {'type': 'string'},
+                        'data': {
+                            'type': 'array',
+                            'items': {
+                                'type': 'object',
+                                'properties': {
+                                    'id': {'type': 'integer'},
+                                    'city': {'type': 'string'},
+                                    'temperature': {'type': 'number'},
+                                    'humidity': {'type': 'integer'},
+                                    'conditions': {'type': 'string'},
+                                    'date': {'type': 'string', 'format': 'date'}
+                                }
+                            }
+                        },
+                        'count': {'type': 'integer'},
+                        'date_range': {
+                            'type': 'object',
+                            'properties': {
+                                'start_date': {'type': 'string', 'format': 'date'},
+                                'end_date': {'type': 'string', 'format': 'date'}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        400: {'description': 'Invalid parameters'},
+        404: {'description': 'City not found or no data available'}
+    }
+)
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated])
+def get_weather_history(request, city):
+    """Get historical weather data for a specific city"""
+    try:
+        # Validate city
+        valid_cities = [choice[0] for choice in CITY_CHOICES]
+        if city not in valid_cities:
+            return Response({
+                'error': f'Invalid city. Allowed cities: {", ".join(valid_cities)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get query parameters
+        days = request.GET.get('days')
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        
+        # Determine date range
+        end_date = timezone.now().date()
+        
+        if start_date_str and end_date_str:
+            # Use custom date range
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                
+                if start_date > end_date:
+                    return Response({
+                        'error': 'start_date cannot be later than end_date'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Limit to reasonable date range (max 1 year)
+                if (end_date - start_date).days > 365:
+                    return Response({
+                        'error': 'Date range cannot exceed 365 days'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except ValueError:
+                return Response({
+                    'error': 'Invalid date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        elif days:
+            # Use days parameter
+            try:
+                days = int(days)
+                if days < 1:
+                    days = 1
+                elif days > 365:
+                    days = 365
+                start_date = end_date - timedelta(days=days-1)
+            except ValueError:
+                return Response({
+                    'error': 'days parameter must be a valid integer'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Default to last 30 days
+            days = 30
+            start_date = end_date - timedelta(days=days-1)
+        
+        # Query all logs for the city and date range, order by date DESC and id DESC (latest first)
+        all_logs = WeatherLog.objects.filter(
+            city=city,
+            date__gte=start_date,
+            date__lte=end_date
+        ).order_by('-date', '-id')
+
+        # Get only the latest log for each unique day
+        unique_logs = {}
+        for log in all_logs:
+            if log.date not in unique_logs:
+                unique_logs[log.date] = log
+        filtered_logs = list(unique_logs.values())
+        filtered_logs.sort(key=lambda x: x.date, reverse=True)
+
+        if not filtered_logs:
+            return Response({
+                'error': f'No weather data found for {city} in the specified date range',
+                'city': city,
+                'date_range': {
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat()
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the data
+        serializer = WeatherLogSerializer(filtered_logs, many=True)
+
+        # Calculate some basic statistics
+        temperatures = [entry.temperature for entry in filtered_logs]
+        humidities = [entry.humidity for entry in filtered_logs]
+
+        statistics = {
+            'avg_temperature': round(sum(temperatures) / len(temperatures), 2),
+            'max_temperature': max(temperatures),
+            'min_temperature': min(temperatures),
+            'avg_humidity': round(sum(humidities) / len(humidities), 1),
+            'max_humidity': max(humidities),
+            'min_humidity': min(humidities)
+        }
+
+        return Response({
+            'city': city,
+            'data': serializer.data,
+            'count': len(serializer.data),
+            'date_range': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            },
+            'statistics': statistics
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': 'An error occurred while retrieving weather history'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
