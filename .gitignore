@@ -1,5 +1,9 @@
 .env
 /venv
 /weather_app/__pycache__
+temp_auto_push.bat
 /weather_project/__pycache__
 Celery_CronJob_Project.docx
+.env.docker
+.gitignore
+temp_interactive_push.bat
