@@ -54,7 +54,7 @@ weather_project/
 
 ```sh
 git clone <your-repo-url>
-cd Weather
+cd Weather_Project
 ```
 
 ### 2. Create & Activate Virtual Environment
