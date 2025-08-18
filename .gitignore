@@ -1,6 +1,5 @@
 .env
-venv
-weather_app/__pycache__
-weather_project/__pycache__
+/venv
+/weather_app/__pycache__
+/weather_project/__pycache__
 Celery_CronJob_Project.docx
-.env.docker
